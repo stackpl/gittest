@@ -2,3 +2,5 @@ The very first version... (created in local branch "next")
 
 The second version... (modified in local branch "next"). Ready to
 merge with local branch "master".
+
+Third edit (local "next").
