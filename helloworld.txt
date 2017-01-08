@@ -5,3 +5,5 @@ merge with local branch "master".
 
 Third edit (local "next").
 Fourth edit (local "next"). Fifth edit (local "next").
+
+6 edit.
