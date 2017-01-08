@@ -7,3 +7,4 @@ Third edit (local "next").
 Fourth edit (local "next"). Fifth edit (local "next").
 
 6 edit.
+7 edit.
