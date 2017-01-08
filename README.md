@@ -1,2 +1,2 @@
 # gittest
-learning git
+learning git...
