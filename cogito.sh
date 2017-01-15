@@ -11,7 +11,7 @@ watch -d -t -n1 -c '
 	unbuffer git branch --all -vv;
 	unbuffer echo -e \\n;
 	unbuffer git log --graph --oneline --decorate=short | 
-	sed -e "s/\x31\x68\x1B\x3D\x0D//;s/\x31\x6C\x1B\x3E//" | 
+	sed -e "s/\x31\x68\x1B\x3D\x0D//;s/\x31\x6C\x1B\x3E//" |
 	cat ;
 	'
 
