@@ -4,7 +4,7 @@ watch -t -n1 -c '
 	STATUS=$(git status -s -u) ;
 	if [ $(echo $STATUS | wc -w) -gt 0 ] ;
 	then
-		unbuffer git status -s -u --column;
+		unbuffer git status -s -u -b --column;
 		#unbuffer echo $STATUS;
 		echo "________ ADD: git add <..>,  UDATE: git add -u,  RESET: git reset <..> ________" ;
 		echo "\n";
