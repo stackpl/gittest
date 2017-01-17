@@ -5,7 +5,6 @@ watch -t -n1 -c '
 	if [ $(echo $STATUS | wc -w) -gt 0 ] ;
 	then
 		echo "  .----- STAGED  (ready to \"git commit\")";
-		#echo "|";	
 		echo " / .--- UNSTAGED"; 
 		echo "| /";
 		echo "||";
