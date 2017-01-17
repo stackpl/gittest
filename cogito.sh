@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 watch -t -n1 -c '
 	STATUS=$(git status -s -uno);
 	if [ $(echo $STATUS | wc -w) -gt 0 ] ;
