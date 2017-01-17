@@ -5,9 +5,9 @@ watch -t -n1 -c '
 	if [ $(echo $STATUS | wc -w) -gt 0 ] ;
 	then
 		echo "+----- INDEX" ; 
-		echo "|  +-- WORK TREE" ; 
+		echo "|  +-- WORK TREE CHANGES" ; 
 		echo "| /";
-		unbuffer git status -s -uno --column;
+		unbuffer git status -s -uno -b;
 		#unbuffer echo $STATUS;
 		echo "_______________________________________________________________________________" ;
 	else
