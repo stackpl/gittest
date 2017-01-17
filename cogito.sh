@@ -1,7 +1,7 @@
 #!/bin/bash
 
 watch -t -n1 -c '
-	STATUS=$(git status -s -u) ;
+	STATUS=$(git status -s -uno) ;
 	if [ $(echo $STATUS | wc -w) -gt 0 ] ;
 	then
 		echo "___________________ WORKING TREE CHANGES SINCE INDEX __________________________" ; 
