@@ -4,8 +4,10 @@ watch -t -n1 -c '
 	STATUS=$(git status -s -uno) ;
 	if [ $(echo $STATUS | wc -w) -gt 0 ] ;
 	then
-		echo "___________________ WORKING TREE CHANGES SINCE INDEX __________________________" ; 
-		unbuffer git status -s -uno -b --column;
+		echo "+----- INDEX" ; 
+		echo "|  +-- WORK TREE" ; 
+		echo "| /";
+		unbuffer git status -s -uno --column;
 		#unbuffer echo $STATUS;
 		echo "_______________________________________________________________________________" ;
 	else
