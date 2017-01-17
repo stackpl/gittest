@@ -1,20 +1,21 @@
 #!/bin/bash
 
 watch -t -n1 -c '
-	STATUS=$(git status -s -u) ;
+	STATUS=$(git status -s -uno);
 	if [ $(echo $STATUS | wc -w) -gt 0 ] ;
 	then
-		echo "___________________ WORKING TREE CHANGES SINCE INDEX __________________________" ; 
-		unbuffer git status -s -uno -b --column;
+		echo "  .----- STAGED  (ready to \"git commit\")";
+		#echo "|";	
+		echo " / .--- UNSTAGED"; 
+		echo "| /";
+		echo "||";
+		unbuffer git status -s -uno;
 		#unbuffer echo $STATUS;
-		echo "_______________________________________________________________________________" ;
 	else
 	        #git branch --all -vv --abbrev=5 --color;
 	        git branch --all --color;
 	fi
 	echo "\n";
-	git log --graph --oneline --decorate=short -n 25 --abbrev=5 --color | 
-	#sed -e "s/\x31\x68\x1B\x3D\x0D//;s/\x31\x6C\x1B\x3E//" |
-	cat ;
+	git log --graph --oneline --decorate=short -n 50 --abbrev=5 --color;
 	'
 
