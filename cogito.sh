@@ -13,7 +13,6 @@ watch -t -n1 -c '
 		echo ""
 	        git branch --color;
 	fi
-	echo "\n";
 	git log --all --graph --oneline --decorate -n 50 --abbrev=5 --color;
 	'
 
