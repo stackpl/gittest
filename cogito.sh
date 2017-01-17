@@ -12,7 +12,6 @@ watch -t -n1 -c '
 		unbuffer git status -s -uno;
 		#unbuffer echo $STATUS;
 	else
-	        #git branch --all -vv --abbrev=5 --color;
 	        git branch --all --color;
 	fi
 	echo "\n";
