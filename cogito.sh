@@ -1,16 +1,15 @@
 #!/bin/bash
 
-
 watch -t -n1 -c '
-	STATUS=$(git status -s -uno);
-	if [ $(echo $STATUS | wc -w) -gt 0 ] ;
+	STATUS=$(unbuffer git status -s -uno);
+	if [ $(echo $STATUS | wc -w) -gt 0 ] ; 
 	then
 		git branch --points-at HEAD --color;
 		echo "";
 		echo ".----------- STAGED  (ready to commit)";
 		echo "|  .------- UNSTAGED";
 		echo "| /";
-		unbuffer git status -s -uno;
+		echo "$STATUS";
 		echo "";
 	else
 	        git branch --color;
