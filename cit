@@ -3,7 +3,7 @@
 
 """
 
-A curses-based version of Git (SCM).
+YAGIT - Yet Another GIT shell.
 
 
 
@@ -34,47 +34,19 @@ import random
 
 
 
-class LifeBoard:
+class YagitBoard:
 
-    """Encapsulates a Life board
-
-
-    Attributes:
-
-    X,Y : horizontal and vertical size of the board
-
-    state : dictionary mapping (x,y) to 0 or 1
-
-
-    Methods:
-
-    display(update_board) -- If update_board is true, compute the
-
-                             next generation.  Then display the state
-
-                             of the board and refresh the screen.
-
-    erase() -- clear the entire board
-
-    make_random() -- fill the board randomly
-
-    set(y,x) -- set the given cell to Live; doesn't refresh the screen
-
-    toggle(y,x) -- change the given cell from live to dead, or vice
-
-                   versa, and refresh the screen display
-
+    """Encapsulates a Yagit board
 
     """
 
     def __init__(self, scr, char=ord('*')):
 
-        """Create a new LifeBoard instance.
+        """Create a new YagitBoard instance.
 
 
         scr -- curses screen object to use for display
-
-        char -- character used to render live cells (default: '*')
+        .... -- ..........
 
         """
 
@@ -107,56 +79,6 @@ class LifeBoard:
 
         self.scr.refresh()
 
-
-    def set(self, y, x):
-
-        """Set a cell to the live state"""
-
-        if x < 0 or self.X <= x or y < 0 or self.Y <= y:
-
-            raise ValueError("Coordinates out of range %i,%i" % (y, x))
-
-        self.state[x, y] = 1
-
-
-    def toggle(self, y, x):
-
-        """Toggle a cell's state between live and dead"""
-
-        if x < 0 or self.X <= x or y < 0 or self.Y <= y:
-
-            raise ValueError("Coordinates out of range %i,%i" % (y, x))
-
-        if (x, y) in self.state:
-
-            del self.state[x, y]
-
-            self.scr.addch(y + 1, x + 1, ' ')
-
-        else:
-
-            self.state[x, y] = 1
-
-            if curses.has_colors():
-
-                # Let's pick a random color!
-
-                self.scr.attrset(curses.color_pair(random.randrange(1, 7)))
-
-            self.scr.addch(y + 1, x + 1, self.char)
-
-            self.scr.attrset(0)
-
-        self.scr.refresh()
-
-
-    def erase(self):
-
-        """Clear the entire board and update the board display"""
-
-        self.state = {}
-
-        self.display(update_board=False)
 
 
     def display(self, update_board=True):
@@ -345,7 +267,7 @@ def keyloop(stdscr):
 
     subwin = stdscr.subwin(stdscr_y - 3, stdscr_x, 0, 0)
 
-    board = LifeBoard(subwin, char=ord('*'))
+    board = YagitBoard(subwin, char=ord('*'))
 
     board.display(update_board=False)
 
@@ -370,46 +292,6 @@ def keyloop(stdscr):
             if c in ' \n':
 
                 board.toggle(ypos, xpos)
-
-            elif c in 'Cc':
-
-                erase_menu(stdscr, menu_y)
-
-                stdscr.addstr(menu_y, 6, ' Hit any key to stop continuously '
-
-                              'updating the screen.')
-
-                stdscr.refresh()
-
-                # Activate nodelay mode; getch() will return -1
-
-                # if no keystroke is available, instead of waiting.
-
-                stdscr.nodelay(1)
-
-                while True:
-
-                    c = stdscr.getch()
-
-                    if c != -1:
-
-                        break
-
-                    stdscr.addstr(0, 0, '/')
-
-                    stdscr.refresh()
-
-                    board.display()
-
-                    stdscr.addstr(0, 0, '+')
-
-                    stdscr.refresh()
-
-
-                stdscr.nodelay(0)       # Disable nodelay mode
-
-                display_menu(stdscr, menu_y)
-
 
             elif c in 'Ee':
 
