@@ -171,22 +171,6 @@ class YagitBoard:
         self.scr.refresh()
 
 
-    def make_random(self):
-
-        "Fill the board with a random pattern"
-
-        self.state = {}
-
-        for i in range(0, self.X):
-
-            for j in range(0, self.Y):
-
-                if random.random() > 0.5:
-
-                    self.set(j, i)
-
-
-
 def erase_menu(stdscr, menu_y):
 
     "Clear the space where the menu resides"
@@ -289,21 +273,11 @@ def keyloop(stdscr):
 
             c = chr(c)
 
-            if c in ' \n':
-
-                board.toggle(ypos, xpos)
-
-            elif c in 'Ee':
-
-                board.erase()
-
-            elif c in 'Qq':
+            if c in 'Qq':
 
                 break
 
             elif c in 'Rr':
-
-                board.make_random()
 
                 board.display(update_board=False)
 
@@ -344,8 +318,6 @@ def keyloop(stdscr):
                 xpos = mouse_x - 1
 
                 ypos = mouse_y - 1
-
-                board.toggle(ypos, xpos)
 
             else:
 
