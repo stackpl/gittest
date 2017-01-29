@@ -20,6 +20,7 @@ git_branch_current() {
 git_branch_list() {
   echo "BRANCHES:"
   git branch --color
+  echo
 }
 
 git_status() {
