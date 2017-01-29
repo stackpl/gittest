@@ -9,7 +9,6 @@ git_branch_current() {
 
 git_branch_list() {
 	echo "BRANCHES:";
-	echo ".............";
 	git branch --color
 }
 
@@ -55,3 +54,5 @@ else
 fi
 echo "";
 git log --all --graph --oneline --decorate -n 50 --abbrev=5 --color | cat;
+
+
