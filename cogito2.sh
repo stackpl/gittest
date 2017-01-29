@@ -8,11 +8,13 @@ git_branch_current() {
 }
 
 git_branch_list() {
+	echo "BRANCHES:";
+	echo ".............";
 	git branch --color
 }
 
-gits() {
-	git status -s -uall --ignored
+git_status() {
+	git status -s -uall
 }
 
 git_status_tracked() {
@@ -42,7 +44,7 @@ git_status_untracked() {
 	fi
 }
 
-STATUS=$(gits)
+STATUS=$(git_status)
 if [ $(echo $STATUS | wc -w) -gt 0 ]  
 then
 	git_branch_current;
