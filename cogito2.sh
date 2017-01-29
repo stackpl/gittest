@@ -1,5 +1,16 @@
 #!/bin/bash
 
+git_branch_current() {
+	git branch --points-at HEAD --color | \
+	tr -d '\n';
+	echo "  (current branch)";
+	echo "";
+}
+
+git_branch_list() {
+	git branch --color
+}
+
 gits() {
 	git status -s -uall --ignored
 }
@@ -34,12 +45,11 @@ git_status_untracked() {
 STATUS=$(gits)
 if [ $(echo $STATUS | wc -w) -gt 0 ]  
 then
-	git branch --points-at HEAD --color | tr -d '\n'; echo "  (current branch)";
-	echo "";
+	git_branch_current;
 	git_status_tracked "$STATUS";
 	git_status_untracked "$STATUS";
 else
-        git branch --color;
+        git_branch_list;
 fi
 echo "";
 git log --all --graph --oneline --decorate -n 50 --abbrev=5 --color | cat;
