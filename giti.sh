@@ -1,11 +1,11 @@
 #!/bin/bash
-GIT_REPORT=`awk '/^__GIT_REPORT__/ {print NR+1; exit 0;}' $0`
+GIT_REPORT=$(awk '/^__GIT_REPORT__/ {print NR+1; exit 0;}' $0)
 # uncomment 1 line below to diagnose internal script
-tail -n+$GIT_REPORT $0 > /tmp/gitreport.sh
+#tail -n+$GIT_REPORT $0 > /tmp/gitreport.sh
 #chmod u+x /tmp/gitreport.sh
 #exec watch -c -t "sh /tmp/gitreport.sh"
 # production stage
-exec watch -c -t "echo $(tail -n+$GIT_REPORT $0);"
+exec watch -c -t "echo $(tail -n+$GIT_REPORT $0)"
 exit
 __GIT_REPORT__
 #!/bin/bash
@@ -57,6 +57,18 @@ git_log() {
   git log --all --graph --oneline --decorate -n 10 --abbrev=5 --color
 }
 
+controller() {
+    # SIGUSR1 and SIGUSR2 are ignored
+    trap '' SIGUSR1 SIGUSR2
+    local cmd commands
+
+    while 1; do           # run while showtime variable is true, it is changed to false in cmd_quit function
+        read -s -n 1 cmd          # read next command from stdout
+        echo "$cmd"         # run command
+    done
+}
+
+
 STATUS=$(git_status)
 if [ $(echo $STATUS | wc -w) -gt 0 ]  
 then
@@ -67,3 +79,5 @@ else
   git_branch_list
 fi
 git_log
+
+
