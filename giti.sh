@@ -4,8 +4,8 @@ GIT_REPORT=$(awk '/^__GIT_REPORT__/ {print NR+1; exit 0;}' $0)
 #tail -n+$GIT_REPORT $0 > /tmp/gitreport.sh  # uncomment this lines to diagnose internal script
 #chmod u+x /tmp/gitreport.sh; exec watch -c -t "sh /tmp/gitreport.sh"
 
-#export GITFLOW=$(cat ./.git/config 2>/dev/null | grep "^\[gitflow" | wc -l)
-exec watch -c -t -n 0.3 "echo $(tail -n+$GIT_REPORT $0)"
+export GITFLOW=$(cat ./.git/config 2>/dev/null | grep "^\[gitflow" | wc -l)
+exec watch -c -t -n 1.0 "echo $(tail -n+$GIT_REPORT $0)"
 exit
 __GIT_REPORT__
 #!/bin/bash
@@ -13,7 +13,7 @@ __GIT_REPORT__
 git_branch_current() {
   #git branch --points-at HEAD | \
   CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null | tr -d '\n')
-  echo "  (current branch)"
+  echo "$CURRENT_BRANCH (the branch you work on)"
   echo ""
 }
 
@@ -33,7 +33,7 @@ git_status_tracked() {
   then
     echo "       Changes in tracked files:"
     echo "+---------+---------+------------------"
-    echo "|  Staged | Unstaged|  File name"
+    echo "| Staged  |Unstaged |  File name"
     echo "+---------+---------+------------------"
     echo "$1" \
     | grep ^[^?!][^?!] \
@@ -56,76 +56,81 @@ git_status_untracked() {
 }
 
 git_flow_help() {
+  W=$(tput setaf 7; echo "\033[m")
+  G=$(tput setaf 2; tput bold)
+  Y=$(tput setaf 3; tput bold)
+
   split_slash $CURRENT_BRANCH
 
   if [ $(echo "$RP1" | grep master | wc -l) -gt 0 ]
   then
-    echo "--------------  git-flow helper:  --------------
+    echo "${W}--------------  git-flow helper:  --------------
 A. Start a hotfix. New branch will be created from the
    corresponding tag on the 'master' branch that
    marks the production version. The <VERSION> argument
    hereby marks the new hotfix release name:
-     $ git flow hotfix start <VERSION>
+   ${Y}  $ git flow hotfix start <VERSION> ${W}
    or optionally you can specify a basename to start from:
-     $ git flow hotfix start <VERSION> <basename>
+   ${Y}  $ git flow hotfix start <VERSION> <basename> ${W}
 B. Finish a hotfix. By finishing a hotfix it gets merged
    back into 'develop' and 'master'. Additionally
    the 'master' merge is tagged with the hotfix version.
-     git flow hotfix finish <VERSION>
+   ${Y}  $ git flow hotfix finish <VERSION> ${W}
 ------------------------------------------------"
   fi
 
   if [ $(echo "$RP1" | grep develop | wc -l) -gt 0 ]
   then
-    echo "--------------  git-flow helper:  --------------
+    echo "${W}--------------  git-flow helper:  --------------
 A. Start developing a new feature. This creates a new
    feature branch based on 'develop' and switches to it.
-     $ git flow feature start <feature-name>
+   ${G}  $ git flow feature start <feature-name>${W}
 B. Start a release. It creates a release branch created 
-   from the 'develop' and switches to it.
-     $ git flow release start <release-name>
+   from the 'develop' and switches to it:
+   ${Y}  $ git flow release start <release-name>${W} 
    or optionally supply a commit sha-1 hash to start
    the release from:
-     $ git flow release start <release-name> <sha1>
+   ${Y}  $ git flow release start <release-name> <sha1> ${W}
 ------------------------------------------------"
   fi  
 
   if [ $(echo "$RP1" | grep feature | wc -l) -gt 0 ]
   then
-    echo "--------------  git-flow helper:  --------------
+    echo "${W}--------------  git-flow helper:  --------------
 1. Finish up a feature:
-     $ git flow feature finish $RP2
-2. Publish a feature to the remote server:
-     $ git flow feature publish $RP2
+   ${G}  $ git flow feature finish $RP2 ${W}
+2. Publish a feature to the remote server, if you
+   developing a feature in collaboration:
+   ${Y}  $ git flow feature publish $RP2 ${W}
 3. Get a feature published by another user:
-     $ git flow feature pull origin $RP2
+   ${Y}  $ git flow feature pull origin $RP2 ${W}
 4. Track a feature on origin:
-     $ git flow feature track $RP2
+   ${Y}  $ git flow feature track $RP2 ${W}
 ------------------------------------------------"
   fi  
 
    if [ $(echo "$RP1" | grep release | wc -l) -gt 0 ]
   then
-    echo "--------------  git-flow helper:  --------------
+    echo "${W}--------------  git-flow helper:  --------------
 1. Publish the release branch after creating it
    to allow release commits by other developers:
-     $ git flow release publish $RP2
+   ${Y}  $ git flow release publish $RP2 ${W}
 2. Track a remote release:
-     $ git flow release track $RP2
+   ${Y}  $ git flow release track $RP2 ${W}
 3. Finish up a release. It performs several actions:
    -merges the release branch back into 'master',
    -tags the release with its name ($RP2),
    -back-merges the release into 'develop',
    -removes the release branch.
-     $ git flow release finish $RP2
+   ${G}  $ git flow release finish $RP2 ${W}
 4. Push your tags with:
-     $ git push --tags
+   ${G}  $ git push --tags ${W}
 ------------------------------------------------"
   fi 
 
   if [ $(echo "$RP1" | grep hotfix | wc -l) -gt 0 ] 
   then
-    echo "--------------  git-flow helper:  --------------
+    echo "${W}--------------  git-flow helper:  --------------
 1. Finish a hotfix. By finishing a hotfix it
    gets merged back into 'develop' and 'master'.
    Additionally the 'master' merge is tagged
@@ -136,7 +141,7 @@ B. Start a release. It creates a release branch created
 
   if [ $(echo "$RP1" | grep support | wc -l) -gt 0 ]
   then
-    echo "SUPPORT"
+    echo ""
   fi
 }
 
@@ -146,7 +151,7 @@ split_slash() {
 }
 
 git_log() {
-  git log --all --graph --oneline --decorate -n 10 --abbrev=5 --color
+  git log --all --graph --oneline --decorate -n 50 --abbrev=5 --color
 }
 
 controller() {
@@ -174,14 +179,24 @@ isgitflow() {
 STATUS=$(git_status)
 GITBRANCH=$(git branch)
 
-(
-bash -c "read -n 1 -t 0.2 KEY"
-echo "$KEY" | tr -d '\n' >> /tmp/key111
-)
+#pipe=/tmp/fifo
 
-#(controller)
+#trap "rm -f $pipe" EXIT ABRT QUIT
 
-KEY=`cat /tmp/key111` 
+#if [ ! -p "$pipe" ] 
+#then
+#    mkfifo $pipe
+#fi
+
+#read_key() {
+#  (/bin/bash -c "read -s -t 0.5 chars"; echo "CHARS:$chars")
+#}
+
+#l=$(exec /bin/bash -c "(/bin/bash -c read -s -t 0.5 chars; echo $chars)")
+
+#echo "reading...$l"
+
+#echo "g=$g" 
 
 if [ $(echo "$STATUS" | wc -w) -gt 0 ]
 then
@@ -197,5 +212,4 @@ else
   fi
 fi
 git_log
-echo $KEY
 
