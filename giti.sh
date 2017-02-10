@@ -1,19 +1,20 @@
 #!/bin/bash
 
 GIT_REPORT=$(awk '/^__GIT_REPORT__/ {print NR+1; exit 0;}' $0)
-tail -n+$GIT_REPORT $0 > /tmp/gitreport.sh  # uncomment this lines to diagnose internal script
-chmod u+x /tmp/gitreport.sh; exec watch -c -t "sh /tmp/gitreport.sh"
+#tail -n+$GIT_REPORT $0 > /tmp/gitreport.sh  # uncomment this lines to diagnose internal script
+#chmod u+x /tmp/gitreport.sh; exec watch -c -t "sh /tmp/gitreport.sh"
 
 export GITFLOW=$(cat ./.git/config 2>/dev/null | grep "^\[gitflow" | wc -l)
-#exec watch -c -t -n 1.0 "echo $(tail -n+$GIT_REPORT $0)"
+exec watch -c -t -n 1.0 "echo $(tail -n+$GIT_REPORT $0)"
 exit
 __GIT_REPORT__
 #!/bin/bash
 
 git_branch_current() {
+  echo "CURRENT BRANCH:"
   #git branch --points-at HEAD | \
   CURRENT_BRANCH=$(git rev-parse --abbrev-ref HEAD 2>/dev/null | tr -d '\n')
-  echo "$CURRENT_BRANCH (the branch you work on)"
+  echo "* $CURRENT_BRANCH"
   echo ""
 }
 
@@ -38,6 +39,7 @@ git_status_tracked() {
     echo "$1" \
     | grep ^[^?!][^?!] \
     | sed -r 's/(.)(.)\s*(.+)/|    \1    |    \2    | \3/'
+    echo "+---------+---------+------------------"
     echo ""
   fi
 }
@@ -46,7 +48,7 @@ git_status_untracked() {
   if [ `echo "$1" | grep ^[?][?] | wc -l` -gt 0 ]
   then
     echo "+---------------------"
-    echo "|  Untracked"
+    echo "|  Untracked files (use \"git add\" or update \".gitignore\")"
     echo "+---------------------"
     echo "$1" | \
     grep ^[?][?] | \
@@ -55,9 +57,14 @@ git_status_untracked() {
   fi
 }
 
+git_diff_stat() {
+  git diff --stat --color
+  echo ""
+}
+
 git_flow_help() {
   #W=$(tput setaf 7; echo "\033[m")
-  W=$(tput sgr0;)
+  W=$(echo "\033[m")
   G=$(tput setaf 2;tput bold)
   Y=$(tput setaf 3;tput bold)
 
@@ -136,7 +143,7 @@ B. Start a release. It creates a release branch created
    gets merged back into 'develop' and 'master'.
    Additionally the 'master' merge is tagged
    with the hotfix version:
-     $ git flow hotfix finish <VERSION> 
+   ${G}  $ git flow hotfix finish <VERSION> ${W} 
 ------------------------------------------------"
   fi 
 
@@ -152,7 +159,7 @@ split_slash() {
 }
 
 git_log() {
-  git log --all --graph --oneline --decorate -n 50 --abbrev=5 --color \
+  git log --all --graph --decorate --oneline --color \
   | sed -e "s/\x31\x68\x1B\x3D\x0D//;s/\x31\x6C\x1B\x3E//" \
   | cat ;
 }
@@ -205,6 +212,7 @@ if [ $(echo "$STATUS" | wc -w) -gt 0 ]
 then
   git_branch_current
   git_status_tracked "$STATUS"
+  git_diff_stat
   git_status_untracked "$STATUS"
 else
   git_branch_list
@@ -213,6 +221,7 @@ else
   then
     git_flow_help
   fi
+  git_log
 fi
-git_log
+#git_log
 
