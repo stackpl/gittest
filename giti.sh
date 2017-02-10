@@ -1,11 +1,11 @@
 #!/bin/bash
 
 GIT_REPORT=$(awk '/^__GIT_REPORT__/ {print NR+1; exit 0;}' $0)
-#tail -n+$GIT_REPORT $0 > /tmp/gitreport.sh  # uncomment this lines to diagnose internal script
-#chmod u+x /tmp/gitreport.sh; exec watch -c -t "sh /tmp/gitreport.sh"
+tail -n+$GIT_REPORT $0 > /tmp/gitreport.sh  # uncomment this lines to diagnose internal script
+chmod u+x /tmp/gitreport.sh; exec watch -c -t "sh /tmp/gitreport.sh"
 
 export GITFLOW=$(cat ./.git/config 2>/dev/null | grep "^\[gitflow" | wc -l)
-exec watch -c -t -n 1.0 "echo $(tail -n+$GIT_REPORT $0)"
+#exec watch -c -t -n 1.0 "echo $(tail -n+$GIT_REPORT $0)"
 exit
 __GIT_REPORT__
 #!/bin/bash
@@ -56,9 +56,10 @@ git_status_untracked() {
 }
 
 git_flow_help() {
-  W=$(tput setaf 7; echo "\033[m")
-  G=$(tput setaf 2; tput bold)
-  Y=$(tput setaf 3; tput bold)
+  #W=$(tput setaf 7; echo "\033[m")
+  W=$(tput sgr0;)
+  G=$(tput setaf 2;tput bold)
+  Y=$(tput setaf 3;tput bold)
 
   split_slash $CURRENT_BRANCH
 
@@ -151,7 +152,9 @@ split_slash() {
 }
 
 git_log() {
-  git log --all --graph --oneline --decorate -n 50 --abbrev=5 --color
+  git log --all --graph --oneline --decorate -n 50 --abbrev=5 --color \
+  | sed -e "s/\x31\x68\x1B\x3D\x0D//;s/\x31\x6C\x1B\x3E//" \
+  | cat ;
 }
 
 controller() {
