@@ -1,8 +1,8 @@
 #!/bin/bash
 
 GIT_REPORT=$(awk '/^__GIT_REPORT__/ {print NR+1; exit 0;}' $0)
-#tail -n+$GIT_REPORT $0 > /tmp/gitreport.sh  # uncomment this lines to diagnose internal script
-#chmod u+x /tmp/gitreport.sh; exec watch -c -t "sh /tmp/gitreport.sh"
+tail -n+$GIT_REPORT $0 > /tmp/gitreport.sh  # uncomment this lines to diagnose internal script
+chmod u+x /tmp/gitreport.sh; exec watch -c -t "sh /tmp/gitreport.sh"
 
 export GITFLOW=$(cat ./.git/config 2>/dev/null | grep "^\[gitflow" | wc -l)
 exec watch -c -t -n 1.0 "echo $(tail -n+$GIT_REPORT $0)"
