@@ -205,74 +205,169 @@ MAX_COLS=$(tput cols)
 
 OLD_CONTENT_DIGEST=""
 
-while : 
-do
-    read -rsn1 -t 0.5 ui
-echo "$ui" | hexdump -c
-sleep 1
-    case "$ui" in
-    $'\x1b')    # Handle ESC sequence.
-        # Flush read. We account for sequences for Fx keys as
-        # well. 6 should suffice far more then enough.
-        read -rsn1 -t 0.01 tmp
-tmp1=$tmp
-        if [[ "$tmp" == "[" ]]; then
-            #$tmp=""
-            read -rsn1 -t 0.01 tmp
-tmp2=$tmp
-            case "$tmp" in
-            "A") 
-                #printf "Up\n"
-#echo "$FIRST_LINE"
-#sleep 1
-                if [[ FIRST_LINE -gt 1 ]]
-                then
-                 (( FIRST_LINE = FIRST_LINE - 1 ))
-                 #(( LAST_LINE = LAST_LINE - 1 ))
-                fi
-            ;;
-            "B") 
-                #printf "Down\n"
-                if [[ EOF_LINE -gt LAST_LINE ]]
-                then
-                  (( FIRST_LINE = FIRST_LINE + 1 ))
-                
-                  #(( LAST_LINE = LAST_LINE + 1 ))
-        #          echo "LAST_LINE=$LAST_LINE  EOF_LINE=$EOF_LINE"
-        #          sleep 1
-                fi
-            ;;
-            "C")
-                #printf "Right\n"
-                FIRST_LINE=1
-            ;;
-            "D")
-                #printf "Left\n"
-                FIRST_LINE=1
-            ;;
-            esac
-            #$tmp=""
+
+# Reset terminal to current state when we exit.
+trap "stty $(stty -g)" EXIT
+
+# Disable echo and special characters, set input timeout to 0.2 seconds.
+stty -echo -icanon time 2 || exit $?
+
+# String containing all keypresses.
+KEYS=""
+
+UPDATE_COUNTER=""
+
+# Set field separator to BEL (should not occur in keypresses)
+IFS=$'\a'
+
+# Remind user to press ESC to quit.
+echo "Press Esc to quit." >&2
+
+# Input loop.
+while [ 1 ]; do
+
+    # Read more input from keyboard when necessary.
+    while read -t 0
+    do
+        read -s -r -d "" -N 1 -t 0.2 CHAR && KEYS="$KEYS$CHAR" || break
+    done
+
+    # If no keys to process, wait 0.05 seconds and retry.
+    if [ -z "$KEYS" ]; then
+        sleep 0.05
+        #continue
+    fi
+
+    # Check the first (next) keypress in the buffer.
+    case "$KEYS" in
+      $'\x1B\x5B\x41'*) # Up
+        KEYS="${KEYS##???}"
+        if [[ FIRST_LINE -gt 1 ]]
+        then
+          (( FIRST_LINE = FIRST_LINE - 1 ))
+          # force execute main job and update scree
+          UPDATE=""
         fi
-        # Flush "stdin" with 0.1  sec timeout.
-        read -rsn15 -t 0.1
         ;;
-    # Other one byte (char) cases. Here only quit.
-    q) 
-      exit
-    ;;
-    r)
-      # "space" move 1 page down
-      for (( x=1; x < SCREEN_LINES; x += 1 ))
-      do
-        (( LAST_LINE = FIRST_LINE + SCREEN_LINES )) 
+      $'\x1B\x5B\x42'*) # Down
+        KEYS="${KEYS##???}"
         if [[ EOF_LINE -gt LAST_LINE ]]
         then
-          (( FIRST_LINE = FIRST_LINE + 1 ))
+           (( FIRST_LINE = FIRST_LINE + 1 ))
+          # force execute main job and update scree
+          UPDATE=""
         fi
-      done
-    ;;
+        ;;
+      $'\x1B\x5B\x44'*) # Left
+        KEYS="${KEYS##???}"
+        echo "Left"
+        ;;
+      $'\x1B\x5B\x43'*) # Right
+        KEYS="${KEYS##???}"
+        echo "Right"
+        ;;
+      $'\x1B\x4F\x48'*) # Home
+        KEYS="${KEYS##???}"
+        FIRST_LINE=1
+        UPDATE=""
+        ;;
+      $'\x1B\x5B\x31\x7E'*) # Home (Numpad)
+        KEYS="${KEYS##????}"
+        FIRST_LINE=1
+        UPDATE=""
+        ;;
+      $'\x1B\x4F\x46'*) # End
+        KEYS="${KEYS##???}"
+        echo "End"
+        ;;
+      $'\x1B\x5B\x34\x7E'*) # End (Numpad)
+        KEYS="${KEYS##????}"
+        echo "End (Numpad)"
+        ;;
+      $'\x1B\x5B\x45'*) # 5 (Numpad)
+        KEYS="${KEYS#???}"
+        echo "Center (Numpad)"
+        ;;
+      $'\x1B\x5B\x35\x7e'*) # PageUp
+        KEYS="${KEYS##????}"
+        FIRST_LINE=1
+        UPDATE=""
+        ;;
+      $'\x1B\x5B\x36\x7e'*) # PageDown
+        KEYS="${KEYS##????}"
+        for (( x=1; x < SCREEN_LINES; x += 1 ))
+        do
+          (( LAST_LINE = FIRST_LINE + SCREEN_LINES )) 
+          if [[ EOF_LINE -gt LAST_LINE ]]
+          then
+            (( FIRST_LINE = FIRST_LINE + 1 ))
+          fi
+        done
+        UPDATE=""
+        ;;
+      $'\x1B\x5B\x32\x7e'*) # Insert
+        KEYS="${KEYS##????}"
+        echo "Insert"
+        ;;
+      $'\x1B\x5B\x33\x7e'*) # Delete
+        KEYS="${KEYS##????}"
+        echo "Delete"
+        ;;
+      $'\n'*|$'\r'*) # Enter/Return
+        KEYS="${KEYS##?}"
+        echo "Enter or Return"
+        ;;
+      $'\t'*) # Tab
+        KEYS="${KEYS##?}"
+        echo "Tab"
+        ;;
+      $'\x1B') # Esc (without anything following!)
+        KEYS="${KEYS##?}"
+        echo "Esc - Quitting"
+        exit 0
+        ;;
+      $'\x1B'*) # Unknown escape sequences
+        echo -n "Unknown escape sequence (${#KEYS} chars): \$'"
+        echo -n "$KEYS" | od --width=256 -t x1 | sed -e '2,99 d; s|^[0-9A-Fa-f]* ||; s| |\\x|g; s|$|'"'|"
+        KEYS=""
+        ;;
+      [$'\x01'-$'\x1F'$'\x7F']*) # Consume control characters
+        KEYS="${KEYS##?}"
+        ;;
+      $'') # None key was pressed
+        UPDATE="$UPDATE*"
+        if [ "$UPDATE" == "*****" ]
+        then
+          UPDATE=""
+        fi
+        ;;
+      $' ') # Space
+        KEYS="${KEYS##?}"
+        # the same as "page down"
+        for (( x=1; x < SCREEN_LINES; x += 1 ))
+        do
+          (( LAST_LINE = FIRST_LINE + SCREEN_LINES ))
+          if [[ EOF_LINE -gt LAST_LINE ]]
+          then
+            (( FIRST_LINE = FIRST_LINE + 1 ))
+          fi
+        done
+        UPDATE=""
+        ;;
+      *) # Printable characters.
+        KEY="${KEYS:0:1}"
+        KEYS="${KEYS#?}"
+        echo "'$KEY'"
+        ;;
     esac
-    #$ui=""
+
+    # do main job below if $UPDATE is empty string
+    if [ -n "$UPDATE" ]
+    then
+        sleep 0.05
+        continue
+    fi
+
 
   # main job
   OUT=$(main)
