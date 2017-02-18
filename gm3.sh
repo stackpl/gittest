@@ -16,7 +16,9 @@ git_branch_list() {
 }
 
 git_status() {
-  git status -s -uall
+  STATUS=$(git status -s -uall)
+  IS_CHANGED_SINCE_LAST_COMMIT=$(echo "$STATUS" | wc -w)
+  echo "$STATUS"
 }
 
 git_status_tracked() {
@@ -166,35 +168,58 @@ isgitflow() {
   fi
 }
 
+menu() {
+  local W=$(tput sgr0;)
+  local Y=$(tput setaf 3; tput setab 0;)
+  local C=$(tput setaf 3; tput setab 1; tput bold;)
+  echo -e "\u25BC\u25B2${Y}"\
+  "2${C}Status  ${Y}"\
+  "3${C}AddRemov${Y}"\
+  "4${C}Commit  ${Y}"\
+  "5${C}MergRbas${Y}"\
+  "6${C}PullFtch${Y}"\
+  "7${C}Push    ${Y}"\
+  "8${C}LogReflg${Y}"\
+  "9${C}Git-Flow${Y}"\
+  "${W}"
+
+
+}
 
 # TODO: remove function, move body into main loop
 main() {
-  STATUS=$(git_status)
+  IS_CHANGED_SINCE_LAST_COMMIT=0
+  IS_INITIALIZED=0
+
+  STATUS=git_status
   GITBRANCH=$(git branch)
 
   if [ $(echo "$STATUS" | wc -w) -gt 0 ]
   then
-    git_branch_current
-    git_status_tracked "$STATUS"
-    git_diff_stat
-    git_status_untracked "$STATUS"
+    OUT=git_branch_current
+    OUT+=git_status_tracked "$STATUS"
+    OUT+=git_diff_stat
+    OUT+=git_status_untracked "$STATUS"
   else
-    git_branch_list
-    isgitflow
+    OUT=git_branch_list
+    OUT+=isgitflow
     if [ $GITFLOW -gt 0 ]
     then
-      git_flow_help
+      OUT+=git_flow_help
     fi
-    git_log
+    OUT+=git_log
   fi
-  #git_log
 }
+
+declare IS_CHANGED_SINCE_LAST_COMMIT=20
+declare IS_INITIALIZED=20
 
 BEG_LINE_NUMBER=1
 END_LINE_NUMBER=$LINES
 
 FIRST_LINE=1
 MAX_LINE=$(tput lines)
+(( MAX_LINE = MAX_LINE - 1 ))
 (( SCREEN_LINES = MAX_LINE - 2 ))
 EOF_LINE=1
 
@@ -290,7 +315,14 @@ while [ 1 ]; do
         ;;
       $'\x1B\x5B\x35\x7e'*) # PageUp
         KEYS="${KEYS##????}"
-        FIRST_LINE=1
+        for (( x=1; x < SCREEN_LINES; x += 1 ))
+        do
+          (( LAST_LINE = FIRST_LINE + SCREEN_LINES )) 
+          if [[ FIRST_LINE -gt 1 ]]
+          then
+            (( FIRST_LINE = FIRST_LINE - 1 ))
+          fi
+        done
         UPDATE=""
         ;;
       $'\x1B\x5B\x36\x7e'*) # PageDown
@@ -324,6 +356,14 @@ while [ 1 ]; do
       $'\x1B') # Esc (without anything following!)
         KEYS="${KEYS##?}"
         echo "Esc - Quitting"
+        exit 0
+        ;;
+     'q') 
+        KEYS="${KEYS##?}"
+        exit 0
+        ;;
+     'Q')
+        KEYS="${KEYS##?}"
         exit 0
         ;;
       $'\x1B'*) # Unknown escape sequences
@@ -370,13 +410,15 @@ while [ 1 ]; do
 
 
   # main job
-  OUT=$(main)
+  OUT=""
+  main
 
   #FIRST_LINE=1
   #LAST_LINE=$((L - 1))
 
   # get current number of lines in the terminal
   MAX_LINE=$(tput lines)
+  (( MAX_LINE = MAX_LINE - 1 ))
   (( SCREEN_LINES = MAX_LINE - 2 ))
   (( LAST_LINE = FIRST_LINE + SCREEN_LINES ))
 
@@ -398,15 +440,18 @@ while [ 1 ]; do
   # print lines in range (FIRST_LINE, LAST_LINE)
   #echo "$OUT" | sed -ne "${FIRST_LINE},${LAST_LINE}p;${LAST_LINE}q"
   CONTENT=$(echo "$OUT" | awk "NR < $FIRST_LINE {next}; NR == $LAST_LINE {print;exit}; {print};") 
-  NEW_CONTENT_DIGEST=$(echo "$CONTENT:$FIRST_LINE:$MAX_LINES:$MAX_COLS" | md5sum)
+  NEW_CONTENT_DIGEST=$(echo "$CONTENT:$FIRST_LINE:$MAX_LINE:$MAX_COLS" | md5sum)
   if [ "$NEW_CONTENT_DIGEST" != "$OLD_CONTENT_DIGEST" ]
   then
     OLD_CONTENT_DIGEST=$NEW_CONTENT_DIGEST
     tput rmam
     clear
     echo "$CONTENT"
+    menu
+    echo "\$IS_CHANGED_SINCE_LAST_COMMIT=$IS_CHANGED_SINCE_LAST_COMMIT"
     tput smam
   fi
 
 done
 
+"$IS_CHANGED_SINCE_LAST_COMMIT"
