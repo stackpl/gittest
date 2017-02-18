@@ -17,7 +17,7 @@ git_branch_list() {
 
 git_status() {
   STATUS=$(git status -s -uall)
-  IS_CHANGED_SINCE_LAST_COMMIT=$(echo "$STATUS" | wc -w)
+  IS_CHANGED_SINCE_LAST_COMMIT=$(echo "$STATUS" | wc -l)
   echo "$STATUS"
 }
 
@@ -151,7 +151,7 @@ split_slash() {
 }
 
 git_log() {
-  git log --all --graph --decorate --oneline -n 25 --color 
+  git log --all --graph --decorate --oneline -n 25 --color 2>&1
 #\
 #  | sed -e "s/\x31\x68\x1B\x3D\x0D//;s/\x31\x6C\x1B\x3E//" \
  # | cat ;
@@ -188,31 +188,31 @@ menu() {
 
 # TODO: remove function, move body into main loop
 main() {
-  IS_CHANGED_SINCE_LAST_COMMIT=0
-  IS_INITIALIZED=0
+  #IS_CHANGED_SINCE_LAST_COMMIT=0
+  #IS_INITIALIZED=0
 
-  STATUS=git_status
+  STATUS=$(git_status)
   GITBRANCH=$(git branch)
 
-  if [ $(echo "$STATUS" | wc -w) -gt 0 ]
+  #if [ $(echo "$STATUS" | wc -w) -gt 0 ]
+  if [ $IS_CHANGED_SINCE_LAST_COMMIT -gt 0 ]
   then
-    OUT=git_branch_current
-    OUT+=git_status_tracked "$STATUS"
-    OUT+=git_diff_stat
-    OUT+=git_status_untracked "$STATUS"
+    git_branch_current
+    git_status_tracked "$STATUS"
+    git_diff_stat
+    git_status_untracked "$STATUS"
   else
-    OUT=git_branch_list
-    OUT+=isgitflow
+    git_branch_list
+    isgitflow
     if [ $GITFLOW -gt 0 ]
     then
-      OUT+=git_flow_help
+      git_flow_help
     fi
-    OUT+=git_log
+    git_log
   fi
 }
 
-declare IS_CHANGED_SINCE_LAST_COMMIT=20
-declare IS_INITIALIZED=20
+IS_CHANGED_SINCE_LAST_COMMIT=20
 
 BEG_LINE_NUMBER=1
 END_LINE_NUMBER=$LINES
@@ -409,9 +409,30 @@ while [ 1 ]; do
     fi
 
 
+# recognize state of repo:
+IS_REPO=0
+IS_ANY_BRANCH=0
+IS_CHANGED_SINCE_LAST_COMMIT=0
+IS_GITFLOW=0
+IS_GITFLOW_REPO=0
+if [ $(git status 2>&1 | grep "Not a git repository" | wc -l) -eq 0 ] ; then
+  IS_REPO=1
+  if [ $(git branch | wc -l) -gt 0 ] ; then
+    IS_ANY_BRANCH=1
+    if [ $(git status -s -uall | wc -l) -gt 0 ] ; then
+      IS_CHANGED_SINCE_LAST_COMMIT=1
+    fi
+  fi
+  if [ $(git flow 2>&1 | grep "is not a git command" | wc -l) -eq 0 ] ; then
+    IS_GITFLOW=1
+    if [ $(git flow log 2>&1 | grep "Not a gitflow-enabled" | wc -l) -eq 0 ] ; then
+      IS_GITFLOW_REPO=1
+    fi    
+  fi
+fi 
+
   # main job
-  OUT=""
-  main
+  OUT=$(main)
 
   #FIRST_LINE=1
   #LAST_LINE=$((L - 1))
@@ -448,7 +469,7 @@ while [ 1 ]; do
     clear
     echo "$CONTENT"
     menu
-    echo "\$IS_CHANGED_SINCE_LAST_COMMIT=$IS_CHANGED_SINCE_LAST_COMMIT"
+    echo $IS_REPO$IS_ANY_BRANCH$IS_CHANGED_SINCE_LAST_COMMIT$IS_GITFLOW$IS_GITFLOW_REPO
     tput smam
   fi
 
