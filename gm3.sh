@@ -61,7 +61,7 @@ git_flow_help() {
   Y=$(tput setaf 3;tput bold)
 
   split_slash $CURRENT_BRANCH
-
+  echo "git-flow:"
   if [ $(echo "$RP1" | grep master | wc -l) -gt 0 ]
   then
     echo "${W}--------------  git-flow helper:  --------------
@@ -161,6 +161,11 @@ git_init() {
   git init
 }
 
+GitFlow() {
+  tput cup $SCREEN_LINES 0
+  git_flow_help
+}
+
 isgitflow() {
   if [ $(cat ./.git/config 2>/dev/null | grep "^\[gitflow" | wc -l) -gt 0 ]
   then
@@ -179,26 +184,31 @@ menu() {
   local Y=$(tput setaf 3; tput setab 0; tput bold;)
   local C=$(tput setaf 3; tput setab 1; tput bold;)
 
-  if [[ FIRST_LINE -gt 1 ]] ; then
-    echo -en "\u2191" #"25B2"
+  if [[ FIRST_LINE -gt 1 && EOF_LINE -gt LAST_LINE ]] ; then
+    echo -en "\u2195 "
   else
-    echo -en " "
-  fi
-  if [[ EOF_LINE -gt LAST_LINE ]] ; then
-    echo -en "\u2193" #"25BC"
-  else
-    echo -en " "
+    if [[ FIRST_LINE -gt 1 ]] ; then
+      echo -en "\u2191 " #"25B2"
+    #else
+    #  echo -en " "
+    fi
+    if [[ EOF_LINE -gt LAST_LINE ]] ; then
+      echo -en "\u2193 " #"25BC"
+    #else
+    #  echo -en " "
+    fi
   fi
 
+
   if [[ IS_REPO -eq 0 ]] ; then
-    echo -en "${Y}F2${C}Init   "\
-         "${Y}F3${C}       "\
-         "${Y}F4${C}       "\
-         "${Y}F5${C}       "\
-         "${Y}F6${C}       "\
-         "${Y}F7${C}       "\
-         "${Y}F8${C}       "\
-         "${Y}F9${C}       "
+    echo -en "${Y}F2${C}Init   "
+    echo -en "${Y}F3${C}        "
+    echo -en "${Y}F4${C}        "
+    echo -en "${Y}F5${C}        "
+    echo -en "${Y}F6${C}        "
+    echo -en "${Y}F7${C}        "
+    echo -en "${Y}F8${C}        "
+    echo -en "${Y}F9${C}        "
   else
     if [[ IS_CHANGED -eq 0 ]] ; then
       echo -en "${Y}F2${C}       "
@@ -206,22 +216,27 @@ menu() {
       echo -en "${Y}F2${C}Status "
     fi
 
-    echo -en "${Y}F3${C}Add    "\
-         "${Y}F4${C}Commit "
-    
+    echo -en "${Y}F3${C}Add     "
+    echo -en "${Y}F4${C}Commit  "
+    echo -en "${Y}F5${C}MergRbse"
+    echo -en "${Y}F6${C}PullFtch"
+
     if [[ IS_CHANGED -eq 0 ]] ; then
-      echo -en "${Y}F5${C}Push   "
+      echo -en "${Y}F7${C}Push    "
     else
-      echo -en "${Y}F5${C}       "
+      echo -en "${Y}F7${C}        "
     fi
 
-    echo -en "${Y}F6${C}Pull/Fetch"\
-         "${Y}F7${C}Merge/Rebase"\
-         "${Y}F8${C}       "
     if [[ IS_ANY_BRANCH -eq 0 ]] ; then
-      echo -en "${Y}F9${C}          "
+      echo -en "${Y}F8${C}        "
     else
-      echo -en "${Y}F9${C}Log/RefLog"
+      echo -en "${Y}F8${C}LogReflg"
+    fi
+
+    if [[ IS_GITFLOW -eq 0 ]] ; then
+      echo -en "${Y}F9${C}        "
+    else
+      echo -en "${Y}F9${C}GitFlow"
     fi
   fi
 
@@ -241,6 +256,7 @@ menu() {
 
 # TODO: remove function, move body into main loop
 main() {
+echo "$MODE"
 
   #if [ $(echo "$STATUS" | wc -w) -gt 0 ]
   if [[ IS_REPO -eq 0 ]] ; then
@@ -255,6 +271,7 @@ main() {
       git_status_tracked "$STATUS"
       git_diff_stat
       git_status_untracked "$STATUS"
+      tput cup $SCREEN_LINES 0
     else
       git_branch_list
       isgitflow
@@ -263,10 +280,14 @@ main() {
         git_flow_help
       fi
       git_log
+      tput cup $SCREEN_LINES 0
     fi
 
   fi
 }
+
+# start mode
+MODE="main"
 
 BEG_LINE_NUMBER=1
 END_LINE_NUMBER=$LINES
@@ -308,12 +329,12 @@ while [ 1 ]; do
     # Read more input from keyboard when necessary.
     while read -t 0
     do
-        read -s -r -d "" -N 1 -t 0.2 CHAR && KEYS="$KEYS$CHAR" || break
+        read -s -r -d "" -N 1 -t 0.1 CHAR && KEYS="$KEYS$CHAR" || break
     done
 
     # If no keys to process, wait 0.05 seconds and retry.
     if [ -z "$KEYS" ]; then
-        sleep 0.05
+        sleep 0.01
         #continue
     fi
 
@@ -324,7 +345,7 @@ while [ 1 ]; do
         if [[ FIRST_LINE -gt 1 ]]
         then
           (( FIRST_LINE = FIRST_LINE - 1 ))
-          # force execute main job and update scree
+          # force to update screen
           UPDATE=""
           # do not do main job after each key pressed
           MAIN_JOB=0
@@ -335,7 +356,7 @@ while [ 1 ]; do
         if [[ EOF_LINE -gt LAST_LINE ]]
         then
            (( FIRST_LINE = FIRST_LINE + 1 ))
-          # force execute main job and update scree
+          # force to update screen
           UPDATE=""
           # do not do main job after each key pressed
           MAIN_JOB=0
@@ -428,6 +449,28 @@ while [ 1 ]; do
         KEYS="${KEYS##?}"
         exit 0
         ;;
+      $'\x1B\x4F\x51'*) # F2
+        echo "F2"
+        KEYS=""
+        if [[ IS_REPO -eq 0 ]] ; then
+          git init
+        fi
+        ;;
+      $'\x1B\x5B\x32\x30\x7E'*) # F9
+        KEYS=""
+        if [ "$MODE" == "main" ] ; then
+        echo "switch to GitFlow mode"
+            MODE="GitFlow"
+          if [[ IS_GITFLOW -eq 1 ]] ; then
+
+            tput cup $SCREEN_LINES 0
+            git_flow_help
+          fi
+        else
+          MODE="main"
+          echo "switch to main mode"
+        fi
+        ;;
       $'\x1B'*) # Unknown escape sequences
         echo -n "Unknown escape sequence (${#KEYS} chars): \$'"
         echo -n "$KEYS" | od --width=256 -t x1 | sed -e '2,99 d; s|^[0-9A-Fa-f]* ||; s| |\\x|g; s|$|'"'|"
@@ -438,10 +481,12 @@ while [ 1 ]; do
         ;;
       $'') # None key was pressed
         UPDATE="$UPDATE*"
-        if [ "$UPDATE" == "*****" ]
+        if [ "$UPDATE" == "**********" ]
         then
           UPDATE=""
           MAIN_JOB=1
+        else
+          continue
         fi
         ;;
       $' ') # Space
@@ -510,7 +555,13 @@ fi
 
 if [[ MAIN_JOB -eq 1 ]] ; then
   # main job
-  OUT=$(main)
+
+  if [ "$MODE" == "main" ] ; then
+    OUT=$(main)
+  fi
+  if [ "$MODE" == "GitFlow" ] ; then
+    OUT=$(GitFlow)
+  fi
 fi
 
   #FIRST_LINE=1
