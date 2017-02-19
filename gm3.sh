@@ -17,7 +17,7 @@ git_branch_list() {
 
 git_status() {
   STATUS=$(git status -s -uall)
-  IS_CHANGED_SINCE_LAST_COMMIT=$(echo "$STATUS" | wc -l)
+  #IS_CHANGED=$(echo "$STATUS" | wc -l)
   echo "$STATUS"
 }
 
@@ -157,6 +157,10 @@ git_log() {
  # | cat ;
 }
 
+git_init() {
+  git init
+}
+
 isgitflow() {
   if [ $(cat ./.git/config 2>/dev/null | grep "^\[gitflow" | wc -l) -gt 0 ]
   then
@@ -169,50 +173,100 @@ isgitflow() {
 }
 
 menu() {
+  local arrow_up=" "
+  local arrow_down=" "
   local W=$(tput sgr0;)
-  local Y=$(tput setaf 3; tput setab 0;)
+  local Y=$(tput setaf 3; tput setab 0; tput bold;)
   local C=$(tput setaf 3; tput setab 1; tput bold;)
-  echo -e "\u25BC\u25B2${Y}"\
-  "2${C}Status  ${Y}"\
-  "3${C}AddRemov${Y}"\
-  "4${C}Commit  ${Y}"\
-  "5${C}MergRbas${Y}"\
-  "6${C}PullFtch${Y}"\
-  "7${C}Push    ${Y}"\
-  "8${C}LogReflg${Y}"\
-  "9${C}Git-Flow${Y}"\
-  "${W}"
 
+  if [[ FIRST_LINE -gt 1 ]] ; then
+    echo -en "\u2191" #"25B2"
+  else
+    echo -en " "
+  fi
+  if [[ EOF_LINE -gt LAST_LINE ]] ; then
+    echo -en "\u2193" #"25BC"
+  else
+    echo -en " "
+  fi
 
+  if [[ IS_REPO -eq 0 ]] ; then
+    echo -en "${Y}F2${C}Init   "\
+         "${Y}F3${C}       "\
+         "${Y}F4${C}       "\
+         "${Y}F5${C}       "\
+         "${Y}F6${C}       "\
+         "${Y}F7${C}       "\
+         "${Y}F8${C}       "\
+         "${Y}F9${C}       "
+  else
+    if [[ IS_CHANGED -eq 0 ]] ; then
+      echo -en "${Y}F2${C}       "
+    else
+      echo -en "${Y}F2${C}Status "
+    fi
+
+    echo -en "${Y}F3${C}Add    "\
+         "${Y}F4${C}Commit "
+    
+    if [[ IS_CHANGED -eq 0 ]] ; then
+      echo -en "${Y}F5${C}Push   "
+    else
+      echo -en "${Y}F5${C}       "
+    fi
+
+    echo -en "${Y}F6${C}Pull/Fetch"\
+         "${Y}F7${C}Merge/Rebase"\
+         "${Y}F8${C}       "
+    if [[ IS_ANY_BRANCH -eq 0 ]] ; then
+      echo -en "${Y}F9${C}          "
+    else
+      echo -en "${Y}F9${C}Log/RefLog"
+    fi
+  fi
+
+  echo -en "${W}"
+
+ # echo -e "$arrow_up$arrow_down ${Y}"\
+ # "2${C}Status  ${Y}"\
+ # "3${C}AddRemov${Y}"\
+ # "4${C}Commit  ${Y}"\
+ # "5${C}MergRbas${Y}"\
+ # "6${C}PullFtch${Y}"\
+ # "7${C}Push    ${Y}"\
+ # "8${C}LogReflg${Y}"\
+ # "9${C}Git-Flow${Y}"\
+ # "${W}"
 }
 
 # TODO: remove function, move body into main loop
 main() {
-  #IS_CHANGED_SINCE_LAST_COMMIT=0
-  #IS_INITIALIZED=0
-
-  STATUS=$(git_status)
-  GITBRANCH=$(git branch)
 
   #if [ $(echo "$STATUS" | wc -w) -gt 0 ]
-  if [ $IS_CHANGED_SINCE_LAST_COMMIT -gt 0 ]
-  then
-    git_branch_current
-    git_status_tracked "$STATUS"
-    git_diff_stat
-    git_status_untracked "$STATUS"
+  if [[ IS_REPO -eq 0 ]] ; then
+    echo "No repository found here."
+    echo "Sugestion: Press F2 to initialize Git repository here"
+    tput cup $SCREEN_LINES 0
   else
-    git_branch_list
-    isgitflow
-    if [ $GITFLOW -gt 0 ]
-    then
-      git_flow_help
+    STATUS=$(git_status)
+    GITBRANCH=$(git branch)
+    if [ $IS_CHANGED -gt 0 ] ; then
+      git_branch_current
+      git_status_tracked "$STATUS"
+      git_diff_stat
+      git_status_untracked "$STATUS"
+    else
+      git_branch_list
+      isgitflow
+      if [ $GITFLOW -gt 0 ]
+      then
+        git_flow_help
+      fi
+      git_log
     fi
-    git_log
+
   fi
 }
-
-IS_CHANGED_SINCE_LAST_COMMIT=20
 
 BEG_LINE_NUMBER=1
 END_LINE_NUMBER=$LINES
@@ -272,6 +326,8 @@ while [ 1 ]; do
           (( FIRST_LINE = FIRST_LINE - 1 ))
           # force execute main job and update scree
           UPDATE=""
+          # do not do main job after each key pressed
+          MAIN_JOB=0
         fi
         ;;
       $'\x1B\x5B\x42'*) # Down
@@ -281,6 +337,8 @@ while [ 1 ]; do
            (( FIRST_LINE = FIRST_LINE + 1 ))
           # force execute main job and update scree
           UPDATE=""
+          # do not do main job after each key pressed
+          MAIN_JOB=0
         fi
         ;;
       $'\x1B\x5B\x44'*) # Left
@@ -324,6 +382,8 @@ while [ 1 ]; do
           fi
         done
         UPDATE=""
+        # do not do main job after each key pressed
+        MAIN_JOB=0
         ;;
       $'\x1B\x5B\x36\x7e'*) # PageDown
         KEYS="${KEYS##????}"
@@ -336,6 +396,8 @@ while [ 1 ]; do
           fi
         done
         UPDATE=""
+        # do not do main job after each key pressed
+        MAIN_JOB=0
         ;;
       $'\x1B\x5B\x32\x7e'*) # Insert
         KEYS="${KEYS##????}"
@@ -379,6 +441,7 @@ while [ 1 ]; do
         if [ "$UPDATE" == "*****" ]
         then
           UPDATE=""
+          MAIN_JOB=1
         fi
         ;;
       $' ') # Space
@@ -408,11 +471,13 @@ while [ 1 ]; do
         continue
     fi
 
+# current mode for main loop
+STATE="AUTO"
 
 # recognize state of repo:
 IS_REPO=0
 IS_ANY_BRANCH=0
-IS_CHANGED_SINCE_LAST_COMMIT=0
+IS_CHANGED=0
 IS_ANY_STASH=0
 IS_CONFLICT=0
 IS_REMOTE=0
@@ -420,18 +485,18 @@ IS_GITFLOW=0
 IS_GITFLOW_REPO=0
 if [ $(git status 2>&1 | grep "Not a git repository" | wc -l) -eq 0 ] ; then
   IS_REPO=1
-  if [ $(git branch | wc -l) -gt 0 ] ; then
+  if [ $(git branch 2>/dev/null | wc -l) -gt 0 ] ; then
     IS_ANY_BRANCH=1
-    if [ $(git status -s -uall | wc -l) -gt 0 ] ; then
-      IS_CHANGED_SINCE_LAST_COMMIT=1
+    if [ $(git status -s -uall 2>/dev/null | wc -l) -gt 0 ] ; then
+      IS_CHANGED=1
     fi
   fi
 
-  if [ $(git stash list | wc -l) -gt 0 ] ; then
+  if [ $(git stash list 2>/dev/null | wc -l) -gt 0 ] ; then
     IS_ANY_STASH=1
   fi
 
-  if [ $(git ls-files --unmerged | wc -l) -gt 0 ] ; then
+  if [ $(git ls-files --unmerged 2>/dev/null | wc -l) -gt 0 ] ; then
     IS_CONFLICT=1
   fi
 
@@ -443,8 +508,10 @@ if [ $(git status 2>&1 | grep "Not a git repository" | wc -l) -eq 0 ] ; then
   fi
 fi 
 
+if [[ MAIN_JOB -eq 1 ]] ; then
   # main job
   OUT=$(main)
+fi
 
   #FIRST_LINE=1
   #LAST_LINE=$((L - 1))
@@ -481,7 +548,7 @@ fi
     clear
     echo "$CONTENT"
     menu
-    #echo $IS_REPO$IS_ANY_BRANCH$IS_CHANGED_SINCE_LAST_COMMIT$IS_CONFLICT$IS_ANY_STASH$IS_GITFLOW$IS_GITFLOW_REPO
+    #echo $IS_REPO$IS_ANY_BRANCH$IS_CHANGED
     tput smam
   fi
 
