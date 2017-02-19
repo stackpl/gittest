@@ -413,6 +413,9 @@ while [ 1 ]; do
 IS_REPO=0
 IS_ANY_BRANCH=0
 IS_CHANGED_SINCE_LAST_COMMIT=0
+IS_ANY_STASH=0
+IS_CONFLICT=0
+IS_REMOTE=0
 IS_GITFLOW=0
 IS_GITFLOW_REPO=0
 if [ $(git status 2>&1 | grep "Not a git repository" | wc -l) -eq 0 ] ; then
@@ -423,6 +426,15 @@ if [ $(git status 2>&1 | grep "Not a git repository" | wc -l) -eq 0 ] ; then
       IS_CHANGED_SINCE_LAST_COMMIT=1
     fi
   fi
+
+  if [ $(git stash list | wc -l) -gt 0 ] ; then
+    IS_ANY_STASH=1
+  fi
+
+  if [ $(git ls-files --unmerged | wc -l) -gt 0 ] ; then
+    IS_CONFLICT=1
+  fi
+
   if [ $(git flow 2>&1 | grep "is not a git command" | wc -l) -eq 0 ] ; then
     IS_GITFLOW=1
     if [ $(git flow log 2>&1 | grep "Not a gitflow-enabled" | wc -l) -eq 0 ] ; then
@@ -469,7 +481,7 @@ fi
     clear
     echo "$CONTENT"
     menu
-    echo $IS_REPO$IS_ANY_BRANCH$IS_CHANGED_SINCE_LAST_COMMIT$IS_GITFLOW$IS_GITFLOW_REPO
+    echo $IS_REPO$IS_ANY_BRANCH$IS_CHANGED_SINCE_LAST_COMMIT$IS_CONFLICT$IS_ANY_STASH$IS_GITFLOW$IS_GITFLOW_REPO
     tput smam
   fi
 
