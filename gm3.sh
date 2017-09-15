@@ -50,7 +50,7 @@ git_status_untracked() {
 }
 
 git_diff_stat() {
-  git diff --stat --color
+  git diff --stat --color 2>&1
   echo ""
 }
 
